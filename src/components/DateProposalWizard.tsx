@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, Clock, Coffee, Gamepad2, UtensilsCrossed, CheckCircle2, Heart, Sparkles, Send, PartyPopper, CalendarHeart, MessageCircleHeart, Map, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Coffee, Gamepad2, UtensilsCrossed, CheckCircle2, Heart, Sparkles, Send, PartyPopper, CalendarHeart, MessageCircleHeart, Map, ArrowRight, ArrowLeft, Shirt, ChevronLeft, ChevronRight, Film, Brush, PencilLine } from 'lucide-react';
 
-type Step = 'INTRO' | 'Q1_ACTIVITY' | 'Q2_DATETIME' | 'Q3_NOTES' | 'LOADING' | 'SUCCESS';
+type Step = 'INTRO' | 'Q1_ACTIVITY' | 'Q2_DATETIME' | 'Q3_DRESSCODE' | 'Q4_NOTES' | 'LOADING' | 'SUCCESS';
 
 interface Activity {
   id: string;
@@ -15,12 +15,21 @@ const ACTIVITIES: Activity[] = [
   { id: 'coffee', title: 'Coffee & Walk', icon: <Coffee className="w-6 h-6" />, description: 'Low pressure, high vibes.' },
   { id: 'tacos', title: 'Tacos & Margs', icon: <UtensilsCrossed className="w-6 h-6" />, description: 'The fastest way to my heart.' },
   { id: 'arcade', title: 'Arcade Bar', icon: <Gamepad2 className="w-6 h-6" />, description: 'A little friendly competition.' },
-  { id: 'surprise', title: 'Surprise Me!', icon: <Map className="w-6 h-6" />, description: 'Trust me, I have a great plan.' },
+  { id: 'movie', title: 'Movie Night', icon: <Film className="w-6 h-6" />, description: 'Popcorn, dim lights, and arguing over what to watch.' },
+  { id: 'museum', title: 'Museum / Art', icon: <Brush className="w-6 h-6" />, description: 'Pretending we understand modern art.' },
+  { id: 'custom', title: 'Your Idea!', icon: <PencilLine className="w-6 h-6" />, description: 'Got a better plan? Let me hear it.' },
 ];
 
 const TIME_SLOTS = [
   '11:00 AM', '1:00 PM', '3:00 PM', '5:00 PM',
   '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'
+];
+
+const DRESS_CODES = [
+  { id: 'casual', title: 'Comfy & Casual', icon: <Shirt className="w-6 h-6" />, description: 'Sweatpants welcome. No judgment here.' },
+  { id: 'smart', title: 'Smart Casual', icon: <Shirt className="w-6 h-6" />, description: 'Looking good but not trying too hard.' },
+  { id: 'fancy', title: 'Fancy', icon: <Shirt className="w-6 h-6" />, description: 'Dress to impress. Let\'s go all out.' },
+  { id: 'surprise', title: 'Surprise Me', icon: <Shirt className="w-6 h-6" />, description: 'I\'ll match whatever energy you bring.' },
 ];
 
 const bouncySpring = { type: 'spring', stiffness: 400, damping: 25 };
@@ -38,23 +47,65 @@ const noMessages = [
   "I have all day"
 ];
 
+const pickupLines = [
+  "I promise I'm at least 20% funnier in person. Want to grab a drink (or tacos) and find out?",
+  "Are you a 404 error? Because I can't seem to find anyone else like you.",
+  "Do you believe in love at first sight, or should I refresh this page?",
+  "I must be a keyboard, because you're exactly my type.",
+  "Is your Wi-Fi down? Because I'm definitely feeling a connection.",
+  "I was going to use a cheesy pickup line, but my API limit was reached.",
+  "You must be a high-order function, because you're elevating my state.",
+  "If we were variables, I'd want us to be in the same scope.",
+  "Are you an exception? Because I want to catch you.",
+  "My love for you is like a while(true) loop—it has no end."
+];
+
 export default function DateProposalWizard() {
   const [step, setStep] = useState<Step>('INTRO');
   
+  // Random Pickup Line
+  const [pickupLine] = useState(() => pickupLines[Math.floor(Math.random() * pickupLines.length)]);
+  
   // Form State
   const [selectedActivity, setSelectedActivity] = useState<string>('');
+  const [customActivityText, setCustomActivityText] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<number | null>(null);
   const [selectedTime, setSelectedTime] = useState<string>('');
+  const [selectedDressCode, setSelectedDressCode] = useState<string>('');
   const [dietary, setDietary] = useState<string>('');
   
+  // Scroller Ref
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  
+  const getActivityTitle = () => {
+    if (selectedActivity === 'custom') return customActivityText || 'Custom Plan';
+    return ACTIVITIES.find(a => a.id === selectedActivity)?.title || '';
+  };
+
   // Loading State
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
-  const loadingMessages = [
-    "Checking local taco spots...",
-    "Consulting my dog for outfit advice...",
-    "Practicing my best jokes...",
-    "Almost ready..."
-  ];
+
+  const getLoadingMessages = () => {
+    const base = [
+      "Consulting my dog for outfit advice...",
+      "Practicing my best jokes...",
+      "Almost ready..."
+    ];
+    let first = "Checking local spots...";
+    if (selectedActivity === 'tacos') first = "Checking local taco spots...";
+    if (selectedActivity === 'coffee') first = "Locating the best coffee beans...";
+    if (selectedActivity === 'arcade') first = "Stockpiling digital tokens...";
+    if (selectedActivity === 'movie') first = "Checking showtimes...";
+    if (selectedActivity === 'museum') first = "Reading up on modern art...";
+    if (selectedActivity === 'surprise') first = "Formulating a master plan...";
+    if (selectedActivity === 'custom') first = "Reviewing your brilliant idea...";
+    return [first, ...base];
+  };
+
+  const loadingMessages = getLoadingMessages();
+
+  // Success State
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   // No Button State
   const [noStyle, setNoStyle] = useState<React.CSSProperties>({});
@@ -69,6 +120,19 @@ export default function DateProposalWizard() {
 
   useEffect(() => {
     if (step === 'LOADING') {
+      // Fire notification asynchronously
+      fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activity: getActivityTitle(),
+          date: selectedDate ? new Date(selectedDate).toLocaleDateString() : '',
+          time: selectedTime,
+          dressCode: DRESS_CODES.find(d => d.id === selectedDressCode)?.title,
+          dietary: dietary
+        })
+      }).catch(console.error);
+
       const interval = setInterval(() => {
         setLoadingMsgIdx(prev => {
           if (prev >= loadingMessages.length - 1) {
@@ -146,7 +210,7 @@ export default function DateProposalWizard() {
           transition={{ delay: 0.3, ...bouncySpring }}
           className="text-slate-500 text-lg max-w-md mx-auto font-medium"
         >
-          I promise I'm at least 20% funnier in person. Want to grab a drink (or tacos) and find out?
+          {pickupLine}
         </motion.p>
       </div>
 
@@ -231,14 +295,34 @@ export default function DateProposalWizard() {
         ))}
       </div>
 
+      <AnimatePresence>
+        {selectedActivity === 'custom' && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            className="overflow-hidden"
+          >
+            <input
+              type="text"
+              value={customActivityText}
+              onChange={(e) => setCustomActivityText(e.target.value)}
+              placeholder="What did you have in mind?"
+              className="w-full bg-white/60 backdrop-blur-md border-2 border-rose-200 rounded-2xl p-4 text-slate-800 placeholder:text-slate-400 font-medium text-lg focus:outline-none focus:border-rose-400 focus:ring-4 focus:ring-rose-100 transition-all shadow-inner"
+              autoFocus
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div variants={itemVariants} className="flex justify-end pt-4">
         <motion.button
-          whileHover={selectedActivity ? { scale: 1.05 } : {}}
-          whileTap={selectedActivity ? { scale: 0.95 } : {}}
-          disabled={!selectedActivity}
+          whileHover={(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0)) ? { scale: 1.05 } : {}}
+          whileTap={(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0)) ? { scale: 0.95 } : {}}
+          disabled={!(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0))}
           onClick={() => setStep('Q2_DATETIME')}
           className={`px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-2 transition-all
-            ${selectedActivity 
+            ${(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0)) 
               ? 'bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-300' 
               : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
         >
@@ -267,9 +351,17 @@ export default function DateProposalWizard() {
 
       <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-xl shadow-rose-100/50 space-y-6">
         {/* Horizontal Date Scroller */}
-        <div className="space-y-3">
+        <div className="space-y-3 relative group">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider pl-1">Select Day</h3>
-          <div className="flex gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
+          
+          <button 
+            onClick={() => scrollContainerRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
+            className="absolute left-0 top-[45%] z-10 p-1.5 bg-white/90 shadow-md rounded-full text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block -ml-4"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+
+          <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
             {availableDates.map((date) => {
               const time = date.getTime();
               const isSelected = selectedDate === time;
@@ -295,6 +387,13 @@ export default function DateProposalWizard() {
               );
             })}
           </div>
+
+          <button 
+            onClick={() => scrollContainerRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
+            className="absolute right-0 top-[45%] z-10 p-1.5 bg-white/90 shadow-md rounded-full text-slate-600 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block -mr-4"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Time Slots */}
@@ -332,7 +431,7 @@ export default function DateProposalWizard() {
           whileHover={(selectedDate && selectedTime) ? { scale: 1.05 } : {}}
           whileTap={(selectedDate && selectedTime) ? { scale: 0.95 } : {}}
           disabled={!(selectedDate && selectedTime)}
-          onClick={() => setStep('Q3_NOTES')}
+          onClick={() => setStep('Q3_DRESSCODE')}
           className={`px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-2 transition-all
             ${(selectedDate && selectedTime) 
               ? 'bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-300' 
@@ -344,9 +443,74 @@ export default function DateProposalWizard() {
     </motion.div>
   );
 
-  const renderQ3Notes = () => (
+  const renderQ3DressCode = () => (
     <motion.div
       key="q3"
+      variants={containerVariants}
+      initial="hidden"
+      animate="show"
+      exit="exit"
+      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6"
+    >
+      <div className="text-center space-y-2 mb-8">
+        <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 3 of 4</span>
+        <motion.h2 variants={itemVariants} className="text-3xl font-extrabold text-slate-800 flex items-center justify-center gap-3">
+          <Shirt className="w-8 h-8 text-rose-500 fill-rose-100" /> What's the dress code?
+        </motion.h2>
+        <motion.p variants={itemVariants} className="text-slate-500 font-medium">How should we coordinate our outfits?</motion.p>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {DRESS_CODES.map(act => (
+          <motion.button
+            variants={itemVariants}
+            key={act.id}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setSelectedDressCode(act.id)}
+            className={`flex flex-col items-start p-5 rounded-3xl border-2 transition-all text-left group
+              ${selectedDressCode === act.id 
+                ? 'border-rose-400 bg-rose-50 shadow-md shadow-rose-100' 
+                : 'border-white bg-white/60 backdrop-blur-md hover:border-rose-200 hover:bg-white'}`}
+          >
+            <div className={`p-3 rounded-2xl mb-4 transition-colors ${selectedDressCode === act.id ? 'bg-rose-400 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500'}`}>
+              {act.icon}
+            </div>
+            <h4 className="text-xl font-bold text-slate-800 mb-1">{act.title}</h4>
+            <p className="text-sm text-slate-500 font-medium">{act.description}</p>
+          </motion.button>
+        ))}
+      </div>
+
+      <motion.div variants={itemVariants} className="flex justify-between pt-4">
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setStep('Q2_DATETIME')}
+          className="px-6 py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" /> Back
+        </motion.button>
+
+        <motion.button
+          whileHover={selectedDressCode ? { scale: 1.05 } : {}}
+          whileTap={selectedDressCode ? { scale: 0.95 } : {}}
+          disabled={!selectedDressCode}
+          onClick={() => setStep('Q4_NOTES')}
+          className={`px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-2 transition-all
+            ${selectedDressCode 
+              ? 'bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-300' 
+              : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
+        >
+          Next Step <ArrowRight className="w-5 h-5" />
+        </motion.button>
+      </motion.div>
+    </motion.div>
+  );
+
+  const renderQ4Notes = () => (
+    <motion.div
+      key="q4"
       variants={containerVariants}
       initial={{ opacity: 0, x: 30, scale: 0.95 }}
       animate="show"
@@ -354,7 +518,7 @@ export default function DateProposalWizard() {
       className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6"
     >
       <div className="text-center space-y-2 mb-8">
-        <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 3 of 3</span>
+        <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 4 of 4</span>
         <motion.h2 variants={itemVariants} className="text-3xl font-extrabold text-slate-800 flex items-center justify-center gap-3">
           <MessageCircleHeart className="w-8 h-8 text-rose-500 fill-rose-100" /> Any dealbreakers?
         </motion.h2>
@@ -374,7 +538,7 @@ export default function DateProposalWizard() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => setStep('Q2_DATETIME')}
+          onClick={() => setStep('Q3_DRESSCODE')}
           className="px-6 py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" /> Back
@@ -450,6 +614,45 @@ export default function DateProposalWizard() {
     </motion.div>
   );
 
+  const getEventDate = () => {
+    if (!selectedDate || !selectedTime) return new Date();
+    const dateObj = new Date(selectedDate);
+    const timeMatch = selectedTime.match(/(\d+):(\d+)\s+(AM|PM)/);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      const modifier = timeMatch[3];
+      if (modifier === 'PM' && hours < 12) hours += 12;
+      if (modifier === 'AM' && hours === 12) hours = 0;
+      dateObj.setHours(hours, minutes, 0, 0);
+    }
+    return dateObj;
+  };
+
+  const generateCalendarLink = () => {
+    const startDate = getEventDate();
+    const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // 2 hours long
+
+    const pad = (n: number) => n < 10 ? '0' + n : n;
+    // Format: YYYYMMDDTHHMMSS (local time, removing the Z so it defaults to user's timezone)
+    const fmt = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+
+    const title = encodeURIComponent(`Date: ${getActivityTitle()}`);
+    const details = encodeURIComponent(`We're going on a date!\n\nActivity: ${getActivityTitle()}\nNotes: ${dietary}`);
+
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmt(startDate)}/${fmt(endDate)}&details=${details}`;
+  };
+
+  const generateMailtoLink = () => {
+    const subject = encodeURIComponent("It's a Date! 🎉");
+    const activityName = getActivityTitle();
+    const dateStr = selectedDate ? new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+    const body = encodeURIComponent(`Hey! I've accepted your date proposal.\n\nHere are the details we locked in:\n- Activity: ${activityName}\n- When: ${dateStr} @ ${selectedTime}\n- Notes: ${dietary || 'None'}\n\nSee you then!`);
+    
+    // Replace 'your.email@example.com' with the creator's actual email in a real app
+    return `mailto:your.email@example.com?subject=${subject}&body=${body}`;
+  };
+
   const renderSuccess = () => (
     <motion.div
       key="success"
@@ -487,7 +690,7 @@ export default function DateProposalWizard() {
           <div className="bg-white p-3 rounded-xl shadow-sm text-rose-500"><Coffee className="w-6 h-6" /></div>
           <div>
             <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">The Plan</div>
-            <div className="text-slate-800 font-bold text-lg">{ACTIVITIES.find(a => a.id === selectedActivity)?.title}</div>
+            <div className="text-slate-800 font-bold text-lg">{getActivityTitle()}</div>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -496,6 +699,15 @@ export default function DateProposalWizard() {
             <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">When</div>
             <div className="text-slate-800 font-bold">
               {selectedDate && new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} @ {selectedTime}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="bg-white p-3 rounded-xl shadow-sm text-rose-500"><Shirt className="w-6 h-6" /></div>
+          <div>
+            <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">Dress Code</div>
+            <div className="text-slate-800 font-bold">
+              {DRESS_CODES.find(d => d.id === selectedDressCode)?.title}
             </div>
           </div>
         </div>
@@ -510,20 +722,44 @@ export default function DateProposalWizard() {
         )}
       </motion.div>
 
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, ...bouncySpring }}
-        onClick={() => {
-          alert("Success! (In a real app, this would send an email/notification)");
-        }}
-        className="w-full py-4 bg-slate-800 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-900 transition-colors shadow-xl shadow-slate-200 relative z-10"
-      >
-        Can't Wait!
-        <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
-      </motion.button>
+      {!hasSubmitted ? (
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, ...bouncySpring }}
+          onClick={() => setHasSubmitted(true)}
+          className="w-full py-4 bg-slate-800 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-900 transition-colors shadow-xl shadow-slate-200 relative z-10"
+        >
+          Can't Wait!
+          <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
+        </motion.button>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3 relative z-10"
+        >
+          <a
+            href={generateCalendarLink()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-4 bg-rose-50 text-rose-600 font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors border-2 border-rose-200"
+          >
+            <CalendarIcon className="w-5 h-5" /> Add to Google Calendar
+          </a>
+          <a
+            href={generateMailtoLink()}
+            className="w-full py-4 bg-rose-500 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-600 transition-colors shadow-xl shadow-rose-200"
+          >
+            <Send className="w-5 h-5" /> Send Me The Details
+          </a>
+          <p className="text-xs font-medium text-slate-400 mt-2 px-4">
+            (The email button opens a pre-written message in your mail app!)
+          </p>
+        </motion.div>
+      )}
     </motion.div>
   );
 
@@ -533,7 +769,8 @@ export default function DateProposalWizard() {
         {step === 'INTRO' && renderIntro()}
         {step === 'Q1_ACTIVITY' && renderQ1Activity()}
         {step === 'Q2_DATETIME' && renderQ2DateTime()}
-        {step === 'Q3_NOTES' && renderQ3Notes()}
+        {step === 'Q3_DRESSCODE' && renderQ3DressCode()}
+        {step === 'Q4_NOTES' && renderQ4Notes()}
         {step === 'LOADING' && renderLoading()}
         {step === 'SUCCESS' && renderSuccess()}
       </AnimatePresence>
