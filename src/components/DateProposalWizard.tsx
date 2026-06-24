@@ -1,23 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar as CalendarIcon, Clock, Coffee, Gamepad2, UtensilsCrossed, CheckCircle2, Heart, Sparkles, Send, PartyPopper, CalendarHeart, MessageCircleHeart, Map, ArrowRight, ArrowLeft, Shirt, ChevronLeft, ChevronRight, Film, Brush, PencilLine } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Coffee, Gamepad2, UtensilsCrossed, CheckCircle2, Heart, Sparkles, Send, PartyPopper, CalendarHeart, MessageCircleHeart, Map, ArrowRight, ArrowLeft, Shirt, ChevronLeft, ChevronRight, Film, Brush, PencilLine, Sofa, Crown, Dices, Sunrise, Moon } from 'lucide-react';
 
 type Step = 'INTRO' | 'Q1_ACTIVITY' | 'Q2_DATETIME' | 'Q3_DRESSCODE' | 'Q4_NOTES' | 'LOADING' | 'SUCCESS';
 
 interface Activity {
   id: string;
   title: string;
-  icon: React.ReactNode;
+  Icon: React.ComponentType<{ className?: string }>;
   description: string;
 }
 
 const ACTIVITIES: Activity[] = [
-  { id: 'coffee', title: 'Coffee & Walk', icon: <Coffee className="w-6 h-6" />, description: 'Low pressure, high vibes.' },
-  { id: 'tacos', title: 'Tacos & Margs', icon: <UtensilsCrossed className="w-6 h-6" />, description: 'The fastest way to my heart.' },
-  { id: 'arcade', title: 'Arcade Bar', icon: <Gamepad2 className="w-6 h-6" />, description: 'A little friendly competition.' },
-  { id: 'movie', title: 'Movie Night', icon: <Film className="w-6 h-6" />, description: 'Popcorn, dim lights, and arguing over what to watch.' },
-  { id: 'museum', title: 'Museum / Art', icon: <Brush className="w-6 h-6" />, description: 'Pretending we understand modern art.' },
-  { id: 'custom', title: 'Your Idea!', icon: <PencilLine className="w-6 h-6" />, description: 'Got a better plan? Let me hear it.' },
+  { id: 'coffee', title: 'Coffee & Walk', Icon: Coffee, description: 'Low pressure, high vibes.' },
+  { id: 'tacos', title: 'Tacos & Margs', Icon: UtensilsCrossed, description: 'The fastest way to my heart.' },
+  { id: 'arcade', title: 'Arcade Bar', Icon: Gamepad2, description: 'A little friendly competition.' },
+  { id: 'movie', title: 'Movie Night', Icon: Film, description: 'Popcorn, dim lights, and arguing over what to watch.' },
+  { id: 'museum', title: 'Museum / Art', Icon: Brush, description: 'Pretending we understand modern art.' },
+  { id: 'custom', title: 'Your Idea!', Icon: PencilLine, description: 'Got a better plan? Let me hear it.' },
 ];
 
 const TIME_SLOTS = [
@@ -25,11 +25,18 @@ const TIME_SLOTS = [
   '6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'
 ];
 
-const DRESS_CODES = [
-  { id: 'casual', title: 'Comfy & Casual', icon: <Shirt className="w-6 h-6" />, description: 'Sweatpants welcome. No judgment here.' },
-  { id: 'smart', title: 'Smart Casual', icon: <Shirt className="w-6 h-6" />, description: 'Looking good but not trying too hard.' },
-  { id: 'fancy', title: 'Fancy', icon: <Shirt className="w-6 h-6" />, description: 'Dress to impress. Let\'s go all out.' },
-  { id: 'surprise', title: 'Surprise Me', icon: <Shirt className="w-6 h-6" />, description: 'I\'ll match whatever energy you bring.' },
+interface DressCode {
+  id: string;
+  title: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  description: string;
+}
+
+const DRESS_CODES: DressCode[] = [
+  { id: 'casual', title: 'Comfy & Casual', Icon: Sofa, description: 'Sweatpants welcome. No judgment here.' },
+  { id: 'smart', title: 'Smart Casual', Icon: Shirt, description: 'Looking good but not trying too hard.' },
+  { id: 'fancy', title: 'Fancy', Icon: Crown, description: 'Dress to impress. Let\'s go all out.' },
+  { id: 'surprise', title: 'Surprise Me', Icon: Dices, description: 'I\'ll match whatever energy you bring.' },
 ];
 
 // Per-activity theming for the success screen — colors, icons, ambient glyphs, copy.
@@ -180,6 +187,18 @@ const noMessages = [
   "I have all day"
 ];
 
+function useIsMobile(breakpoint = 640) {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const update = () => setIsMobile(mql.matches);
+    update();
+    mql.addEventListener('change', update);
+    return () => mql.removeEventListener('change', update);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 const pickupLines = [
   "I promise I'm at least 20% funnier in person. Want to grab a drink (or tacos) and find out?",
   "Are you a 404 error? Because I can't seem to find anyone else like you.",
@@ -195,7 +214,8 @@ const pickupLines = [
 
 export default function DateProposalWizard() {
   const [step, setStep] = useState<Step>('INTRO');
-  
+  const isMobile = useIsMobile();
+
   // Random Pickup Line
   const [pickupLine] = useState(() => pickupLines[Math.floor(Math.random() * pickupLines.length)]);
   
@@ -301,6 +321,23 @@ export default function DateProposalWizard() {
       return () => clearInterval(interval);
     }
   }, [step]);
+
+  // Mobile-only: gently auto-advance after a selection. Skips Q1 'custom' (needs text input).
+  useEffect(() => {
+    if (!isMobile) return;
+    if (step === 'Q1_ACTIVITY' && selectedActivity && selectedActivity !== 'custom') {
+      const t = setTimeout(() => setStep('Q2_DATETIME'), 650);
+      return () => clearTimeout(t);
+    }
+    if (step === 'Q2_DATETIME' && selectedDate && selectedTime) {
+      const t = setTimeout(() => setStep('Q3_DRESSCODE'), 650);
+      return () => clearTimeout(t);
+    }
+    if (step === 'Q3_DRESSCODE' && selectedDressCode) {
+      const t = setTimeout(() => setStep('Q4_NOTES'), 650);
+      return () => clearTimeout(t);
+    }
+  }, [isMobile, step, selectedActivity, selectedDate, selectedTime, selectedDressCode]);
 
   const handleNoHover = (e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -418,36 +455,51 @@ export default function DateProposalWizard() {
       initial="hidden"
       animate="show"
       exit="exit"
-      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6"
+      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6 pb-28 sm:pb-6"
     >
       <div className="text-center space-y-2 mb-8">
-        <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 1 of 3</span>
+        <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 1 of 4</span>
         <motion.h2 variants={itemVariants} className="text-3xl font-extrabold text-slate-800 flex items-center justify-center gap-3">
           <Heart className="w-8 h-8 text-rose-500 fill-rose-100" /> What's the vibe?
         </motion.h2>
         <motion.p variants={itemVariants} className="text-slate-500 font-medium">Pick your favorite date activity.</motion.p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {ACTIVITIES.map(act => (
-          <motion.button
-            variants={itemVariants}
-            key={act.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setSelectedActivity(act.id)}
-            className={`flex flex-col items-start p-5 rounded-3xl border-2 transition-all text-left group
-              ${selectedActivity === act.id 
-                ? 'border-rose-400 bg-rose-50 shadow-md shadow-rose-100' 
-                : 'border-white bg-white/60 backdrop-blur-md hover:border-rose-200 hover:bg-white'}`}
-          >
-            <div className={`p-3 rounded-2xl mb-4 transition-colors ${selectedActivity === act.id ? 'bg-rose-400 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500'}`}>
-              {act.icon}
-            </div>
-            <h4 className="text-xl font-bold text-slate-800 mb-1">{act.title}</h4>
-            <p className="text-sm text-slate-500 font-medium">{act.description}</p>
-          </motion.button>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4">
+        {ACTIVITIES.map((act, i) => {
+          const isSelected = selectedActivity === act.id;
+          const hasSelection = selectedActivity !== '';
+          // Mobile-only selection emphasis: selected card scales up, others shrink + dim.
+          const mobileScale = isMobile
+            ? (isSelected ? 1.2 : hasSelection ? 0.9 : 1)
+            : 1;
+          const mobileOpacity = isMobile && hasSelection && !isSelected ? 0.55 : 1;
+          // Selected pops first, others ripple back with a small per-tile delay.
+          const animDelay = isMobile && hasSelection && !isSelected ? 0.05 + i * 0.025 : 0;
+          const ActIcon = act.Icon;
+          return (
+            <motion.button
+              variants={itemVariants}
+              key={act.id}
+              animate={{ scale: mobileScale, opacity: mobileOpacity }}
+              transition={{ type: 'spring', stiffness: 320, damping: 22, delay: animDelay }}
+              whileHover={{ scale: mobileScale * 1.02 }}
+              whileTap={{ scale: mobileScale * 0.97 }}
+              onClick={() => setSelectedActivity(act.id)}
+              style={{ transformOrigin: 'center' }}
+              className={`flex flex-col items-start p-3 sm:p-5 rounded-2xl sm:rounded-3xl border-2 transition-colors text-left group
+                ${isSelected
+                  ? 'border-rose-400 bg-rose-50 shadow-md shadow-rose-100'
+                  : 'border-white bg-white/60 backdrop-blur-md hover:border-rose-200 hover:bg-white'}`}
+            >
+              <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl mb-2 sm:mb-4 transition-colors ${isSelected ? 'bg-rose-400 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500'}`}>
+                <ActIcon className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <h4 className="text-sm sm:text-xl font-bold text-slate-800 mb-0.5 sm:mb-1 leading-tight">{act.title}</h4>
+              <p className="text-[11px] sm:text-sm text-slate-500 font-medium leading-snug">{act.description}</p>
+            </motion.button>
+          );
+        })}
       </div>
 
       <AnimatePresence>
@@ -470,13 +522,13 @@ export default function DateProposalWizard() {
         )}
       </AnimatePresence>
 
-      <motion.div variants={itemVariants} className="flex justify-end pt-4">
+      <motion.div variants={itemVariants} className="flex justify-end pt-4 fixed inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 bg-gradient-to-t from-rose-50 via-rose-50/95 to-transparent z-30 sm:static sm:p-0 sm:bg-none">
         <motion.button
           whileHover={(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0)) ? { scale: 1.05 } : {}}
           whileTap={(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0)) ? { scale: 0.95 } : {}}
           disabled={!(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0))}
           onClick={() => setStep('Q2_DATETIME')}
-          className={`px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-2 transition-all
+          className={`px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center gap-2 transition-all w-full sm:w-auto justify-center
             ${(selectedActivity && (selectedActivity !== 'custom' || customActivityText.trim().length > 0)) 
               ? 'bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-300' 
               : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
@@ -494,17 +546,17 @@ export default function DateProposalWizard() {
       initial={{ opacity: 0, x: 30, scale: 0.95 }}
       animate="show"
       exit="exit"
-      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6"
+      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6 pb-28 sm:pb-6"
     >
       <div className="text-center space-y-2 mb-8">
-        <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 2 of 3</span>
+        <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 2 of 4</span>
         <motion.h2 variants={itemVariants} className="text-3xl font-extrabold text-slate-800 flex items-center justify-center gap-3">
           <CalendarHeart className="w-8 h-8 text-rose-500 fill-rose-100" /> When are we doing this?
         </motion.h2>
         <motion.p variants={itemVariants} className="text-slate-500 font-medium">Select a day and time that works for you.</motion.p>
       </div>
 
-      <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-md p-6 rounded-[2rem] border border-white shadow-xl shadow-rose-100/50 space-y-6">
+      <motion.div variants={itemVariants} className="bg-white/60 backdrop-blur-md p-3 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-white shadow-xl shadow-rose-100/50 space-y-6">
         {/* Horizontal Date Scroller */}
         <div className="space-y-3 relative group">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider pl-1">Select Day</h3>
@@ -516,26 +568,35 @@ export default function DateProposalWizard() {
             <ChevronLeft className="w-5 h-5" />
           </button>
 
-          <div ref={scrollContainerRef} className="flex gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar" style={{ scrollbarWidth: 'none' }}>
-            {availableDates.map((date) => {
+          <div ref={scrollContainerRef} className="flex gap-2 sm:gap-3 overflow-x-auto pb-4 snap-x hide-scrollbar items-center" style={{ scrollbarWidth: 'none' }}>
+            {availableDates.map((date, i) => {
               const time = date.getTime();
               const isSelected = selectedDate === time;
+              const hasSelection = selectedDate !== null;
+              const mobileScale = isMobile
+                ? (isSelected ? 1.2 : hasSelection ? 0.9 : 1)
+                : 1;
+              const mobileOpacity = isMobile && hasSelection && !isSelected ? 0.55 : 1;
+              const animDelay = isMobile && hasSelection && !isSelected ? 0.05 + i * 0.02 : 0;
               return (
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  animate={{ scale: mobileScale, opacity: mobileOpacity }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 22, delay: animDelay }}
+                  whileHover={{ scale: mobileScale * 1.04 }}
+                  whileTap={{ scale: mobileScale * 0.96 }}
                   key={time}
                   onClick={() => setSelectedDate(time)}
-                  className={`flex flex-col items-center min-w-[5.5rem] p-4 rounded-2xl border-2 transition-all snap-start
+                  style={{ transformOrigin: 'center' }}
+                  className={`flex flex-col items-center min-w-[4rem] sm:min-w-[5.5rem] p-2.5 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition-colors snap-start
                     ${isSelected ? 'border-rose-400 bg-rose-50 text-rose-500 shadow-md shadow-rose-100' : 'border-slate-100 bg-white text-slate-500 hover:border-rose-200 hover:bg-rose-50/50'}`}
                 >
-                  <span className="text-xs font-bold uppercase tracking-wider mb-1">
+                  <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-0.5 sm:mb-1">
                     {date.toLocaleDateString('en-US', { weekday: 'short' })}
                   </span>
-                  <span className={`text-2xl font-black ${isSelected ? 'text-rose-600' : 'text-slate-800'}`}>
+                  <span className={`text-lg sm:text-2xl font-black ${isSelected ? 'text-rose-600' : 'text-slate-800'}`}>
                     {date.getDate()}
                   </span>
-                  <span className="text-xs mt-1 font-medium">
+                  <span className="text-[10px] sm:text-xs mt-0.5 sm:mt-1 font-medium">
                     {date.toLocaleDateString('en-US', { month: 'short' })}
                   </span>
                 </motion.button>
@@ -551,35 +612,64 @@ export default function DateProposalWizard() {
           </button>
         </div>
 
-        {/* Time Slots */}
-        <div className="space-y-3 pt-2">
+        {/* Time Slots — grouped by daypart so the eye scans faster */}
+        <div className="space-y-4 pt-2">
           <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider pl-1">Select Time</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {TIME_SLOTS.map(slot => (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                key={slot}
-                onClick={() => setSelectedTime(slot)}
-                className={`flex items-center justify-center gap-2 p-3 rounded-2xl border-2 font-bold transition-all
-                  ${selectedTime === slot ? 'border-rose-400 bg-rose-400 text-white shadow-md shadow-rose-200' : 'border-slate-100 bg-white text-slate-500 hover:border-rose-200 hover:bg-rose-50/50 hover:text-rose-500'}`}
-              >
-                <Clock className="w-4 h-4" />
-                <span className="text-sm">{slot}</span>
-              </motion.button>
-            ))}
-          </div>
+
+          {(['daytime', 'evening'] as const).map((group) => {
+            const isDay = group === 'daytime';
+            const groupSlots = isDay
+              ? TIME_SLOTS.filter(s => ['11:00 AM', '1:00 PM', '3:00 PM', '5:00 PM'].includes(s))
+              : TIME_SLOTS.filter(s => ['6:00 PM', '7:00 PM', '8:00 PM', '9:00 PM'].includes(s));
+            const GroupIcon = isDay ? Sunrise : Moon;
+            const groupLabel = isDay ? 'Daytime' : 'Evening';
+            return (
+              <div key={group} className="space-y-2">
+                <div className="flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider pl-1">
+                  <GroupIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                  <span>{groupLabel}</span>
+                </div>
+                <div className="grid grid-cols-4 gap-2 sm:gap-3 items-center">
+                  {groupSlots.map((slot, i) => {
+                    const isSelected = selectedTime === slot;
+                    const hasSelection = selectedTime !== '';
+                    const mobileScale = isMobile
+                      ? (isSelected ? 1.2 : hasSelection ? 0.9 : 1)
+                      : 1;
+                    const mobileOpacity = isMobile && hasSelection && !isSelected ? 0.55 : 1;
+                    const animDelay = isMobile && hasSelection && !isSelected ? 0.05 + i * 0.025 : 0;
+                    return (
+                      <motion.button
+                        animate={{ scale: mobileScale, opacity: mobileOpacity }}
+                        transition={{ type: 'spring', stiffness: 320, damping: 22, delay: animDelay }}
+                        whileHover={{ scale: mobileScale * 1.04 }}
+                        whileTap={{ scale: mobileScale * 0.96 }}
+                        key={slot}
+                        onClick={() => setSelectedTime(slot)}
+                        style={{ transformOrigin: 'center' }}
+                        className={`flex items-center justify-center gap-1 sm:gap-2 p-2 sm:p-3 rounded-xl sm:rounded-2xl border-2 font-bold transition-colors
+                          ${isSelected ? 'border-rose-400 bg-rose-400 text-white shadow-md shadow-rose-200' : 'border-slate-100 bg-white text-slate-500 hover:border-rose-200 hover:bg-rose-50/50 hover:text-rose-500'}`}
+                      >
+                        <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
+                        <span className="text-[11px] sm:text-sm whitespace-nowrap">{slot}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </motion.div>
 
-      <motion.div variants={itemVariants} className="flex justify-between pt-4">
+      <motion.div variants={itemVariants} className="flex justify-between items-center gap-3 pt-4 fixed inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 bg-gradient-to-t from-rose-50 via-rose-50/95 to-transparent z-30 sm:static sm:p-0 sm:bg-none">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setStep('Q1_ACTIVITY')}
-          className="px-6 py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors"
+          className="px-4 sm:px-6 py-3 sm:py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors shrink-0"
         >
-          <ArrowLeft className="w-5 h-5" /> Back
+          <ArrowLeft className="w-5 h-5" /> <span className="hidden sm:inline">Back</span>
         </motion.button>
 
         <motion.button
@@ -587,7 +677,7 @@ export default function DateProposalWizard() {
           whileTap={(selectedDate && selectedTime) ? { scale: 0.95 } : {}}
           disabled={!(selectedDate && selectedTime)}
           onClick={() => setStep('Q3_DRESSCODE')}
-          className={`px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-2 transition-all
+          className={`px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center gap-2 transition-all flex-1 sm:flex-none justify-center
             ${(selectedDate && selectedTime) 
               ? 'bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-300' 
               : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
@@ -605,7 +695,7 @@ export default function DateProposalWizard() {
       initial="hidden"
       animate="show"
       exit="exit"
-      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6"
+      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6 pb-28 sm:pb-6"
     >
       <div className="text-center space-y-2 mb-8">
         <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 3 of 4</span>
@@ -615,36 +705,49 @@ export default function DateProposalWizard() {
         <motion.p variants={itemVariants} className="text-slate-500 font-medium">How should we coordinate our outfits?</motion.p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {DRESS_CODES.map(act => (
-          <motion.button
-            variants={itemVariants}
-            key={act.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setSelectedDressCode(act.id)}
-            className={`flex flex-col items-start p-5 rounded-3xl border-2 transition-all text-left group
-              ${selectedDressCode === act.id 
-                ? 'border-rose-400 bg-rose-50 shadow-md shadow-rose-100' 
-                : 'border-white bg-white/60 backdrop-blur-md hover:border-rose-200 hover:bg-white'}`}
-          >
-            <div className={`p-3 rounded-2xl mb-4 transition-colors ${selectedDressCode === act.id ? 'bg-rose-400 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500'}`}>
-              {act.icon}
-            </div>
-            <h4 className="text-xl font-bold text-slate-800 mb-1">{act.title}</h4>
-            <p className="text-sm text-slate-500 font-medium">{act.description}</p>
-          </motion.button>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-2 gap-3 sm:gap-4">
+        {DRESS_CODES.map((act, i) => {
+          const isSelected = selectedDressCode === act.id;
+          const hasSelection = selectedDressCode !== '';
+          const mobileScale = isMobile
+            ? (isSelected ? 1.2 : hasSelection ? 0.9 : 1)
+            : 1;
+          const mobileOpacity = isMobile && hasSelection && !isSelected ? 0.55 : 1;
+          const animDelay = isMobile && hasSelection && !isSelected ? 0.05 + i * 0.025 : 0;
+          const ActIcon = act.Icon;
+          return (
+            <motion.button
+              variants={itemVariants}
+              key={act.id}
+              animate={{ scale: mobileScale, opacity: mobileOpacity }}
+              transition={{ type: 'spring', stiffness: 320, damping: 22, delay: animDelay }}
+              whileHover={{ scale: mobileScale * 1.02 }}
+              whileTap={{ scale: mobileScale * 0.97 }}
+              onClick={() => setSelectedDressCode(act.id)}
+              style={{ transformOrigin: 'center' }}
+              className={`flex flex-col items-start p-3 sm:p-5 rounded-2xl sm:rounded-3xl border-2 transition-colors text-left group
+                ${isSelected
+                  ? 'border-rose-400 bg-rose-50 shadow-md shadow-rose-100'
+                  : 'border-white bg-white/60 backdrop-blur-md hover:border-rose-200 hover:bg-white'}`}
+            >
+              <div className={`p-2 sm:p-3 rounded-xl sm:rounded-2xl mb-2 sm:mb-4 transition-colors ${isSelected ? 'bg-rose-400 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-400 group-hover:bg-rose-100 group-hover:text-rose-500'}`}>
+                <ActIcon className="w-4 h-4 sm:w-6 sm:h-6" />
+              </div>
+              <h4 className="text-sm sm:text-xl font-bold text-slate-800 mb-0.5 sm:mb-1 leading-tight">{act.title}</h4>
+              <p className="text-[11px] sm:text-sm text-slate-500 font-medium leading-snug">{act.description}</p>
+            </motion.button>
+          );
+        })}
       </div>
 
-      <motion.div variants={itemVariants} className="flex justify-between pt-4">
+      <motion.div variants={itemVariants} className="flex justify-between items-center gap-3 pt-4 fixed inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 bg-gradient-to-t from-rose-50 via-rose-50/95 to-transparent z-30 sm:static sm:p-0 sm:bg-none">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setStep('Q2_DATETIME')}
-          className="px-6 py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors"
+          className="px-4 sm:px-6 py-3 sm:py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors shrink-0"
         >
-          <ArrowLeft className="w-5 h-5" /> Back
+          <ArrowLeft className="w-5 h-5" /> <span className="hidden sm:inline">Back</span>
         </motion.button>
 
         <motion.button
@@ -652,7 +755,7 @@ export default function DateProposalWizard() {
           whileTap={selectedDressCode ? { scale: 0.95 } : {}}
           disabled={!selectedDressCode}
           onClick={() => setStep('Q4_NOTES')}
-          className={`px-8 py-4 rounded-2xl font-bold text-lg flex items-center gap-2 transition-all
+          className={`px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg flex items-center gap-2 transition-all flex-1 sm:flex-none justify-center
             ${selectedDressCode 
               ? 'bg-slate-800 hover:bg-slate-900 text-white shadow-lg shadow-slate-300' 
               : 'bg-slate-200 text-slate-400 cursor-not-allowed'}`}
@@ -670,7 +773,7 @@ export default function DateProposalWizard() {
       initial={{ opacity: 0, x: 30, scale: 0.95 }}
       animate="show"
       exit="exit"
-      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6"
+      className="w-full max-w-xl mx-auto space-y-8 p-4 md:p-6 pb-28 sm:pb-6"
     >
       <div className="text-center space-y-2 mb-8">
         <span className="inline-block py-1 px-3 bg-rose-100 text-rose-600 rounded-full text-xs font-bold tracking-wider uppercase mb-2">Step 4 of 4</span>
@@ -685,25 +788,25 @@ export default function DateProposalWizard() {
             value={dietary}
             onChange={(e) => setDietary(e.target.value)}
             placeholder="Tell me if you hate cilantro, or if you're secretly a dog person..."
-            className="w-full h-40 bg-transparent rounded-2xl p-6 text-slate-800 placeholder:text-slate-400 font-medium text-lg focus:outline-none resize-none"
+            className="w-full h-28 sm:h-40 bg-transparent rounded-2xl p-4 sm:p-6 text-slate-800 placeholder:text-slate-400 font-medium text-base sm:text-lg focus:outline-none resize-none"
           />
       </motion.div>
 
-      <motion.div variants={itemVariants} className="flex justify-between pt-4">
+      <motion.div variants={itemVariants} className="flex justify-between items-center gap-3 pt-4 fixed inset-x-0 bottom-0 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-4 bg-gradient-to-t from-rose-50 via-rose-50/95 to-transparent z-30 sm:static sm:p-0 sm:bg-none">
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setStep('Q3_DRESSCODE')}
-          className="px-6 py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors"
+          className="px-4 sm:px-6 py-3 sm:py-4 rounded-2xl font-bold text-slate-500 flex items-center gap-2 hover:bg-white/50 transition-colors shrink-0"
         >
-          <ArrowLeft className="w-5 h-5" /> Back
+          <ArrowLeft className="w-5 h-5" /> <span className="hidden sm:inline">Back</span>
         </motion.button>
 
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => setStep('LOADING')}
-          className="px-8 py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/30 transition-colors text-lg flex items-center gap-2"
+          className="px-6 sm:px-8 py-3 sm:py-4 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-2xl shadow-lg shadow-rose-500/30 transition-colors text-base sm:text-lg flex items-center gap-2 flex-1 sm:flex-none justify-center"
         >
           Send Invite ✨
         </motion.button>
