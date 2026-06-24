@@ -8,20 +8,35 @@ export default async function handler(req, res) {
 
   console.log("Received proposal notification:", req.body);
 
-  if (webhookUrl) {
-    try {
-      await fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: `🎉 **New Date Proposal Accepted!** 🎉\n\n**Activity:** ${activity}\n**When:** ${date} @ ${time}\n**Dress Code:** ${dressCode}\n**Notes:** ${dietary || 'None'}`
-        })
-      });
-    } catch (e) {
-      console.error("Failed to send webhook", e);
-      // We still return 200 so the frontend doesn't show an error to the user
-    }
+  if (!webhookUrl) {
+    console.warn("WEBHOOK_URL env var is not set — skipping notification.");
+    return res.status(200).json({ success: true, notified: false });
   }
 
-  return res.status(200).json({ success: true });
+  const isSlack = webhookUrl.includes("hooks.slack.com");
+  const message = `🎉 *New Date Proposal Accepted!* 🎉\n\n*Activity:* ${activity}\n*When:* ${date} @ ${time}\n*Dress Code:* ${dressCode}\n*Notes:* ${dietary || 'None'}`;
+
+  // Slack expects { text }, Discord expects { content }
+  const payload = isSlack
+    ? { text: message }
+    : { content: message.replace(/\*/g, "**") };
+
+  try {
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      console.error(`Webhook returned ${response.status}: ${body}`);
+      return res.status(200).json({ success: true, notified: false, webhookStatus: response.status });
+    }
+
+    return res.status(200).json({ success: true, notified: true });
+  } catch (e) {
+    console.error("Failed to send webhook", e);
+    return res.status(200).json({ success: true, notified: false });
+  }
 }

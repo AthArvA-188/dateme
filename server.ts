@@ -12,24 +12,39 @@ async function startServer() {
   app.post("/api/notify", async (req, res) => {
     const { activity, date, time, dressCode, dietary } = req.body;
     const webhookUrl = process.env.WEBHOOK_URL;
-    
+
     console.log("Received proposal notification:", req.body);
 
-    if (webhookUrl) {
-      try {
-        await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            content: `🎉 **New Date Proposal Accepted!** 🎉\n\n**Activity:** ${activity}\n**When:** ${date} @ ${time}\n**Dress Code:** ${dressCode}\n**Notes:** ${dietary || 'None'}`
-          })
-        });
-      } catch (e) {
-        console.error("Failed to send webhook", e);
-      }
+    if (!webhookUrl) {
+      console.warn("WEBHOOK_URL env var is not set — skipping notification.");
+      return res.json({ success: true, notified: false });
     }
 
-    res.json({ success: true });
+    const isSlack = webhookUrl.includes("hooks.slack.com");
+    const message = `🎉 *New Date Proposal Accepted!* 🎉\n\n*Activity:* ${activity}\n*When:* ${date} @ ${time}\n*Dress Code:* ${dressCode}\n*Notes:* ${dietary || 'None'}`;
+
+    const payload = isSlack
+      ? { text: message }
+      : { content: message.replace(/\*/g, "**") };
+
+    try {
+      const response = await fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const body = await response.text();
+        console.error(`Webhook returned ${response.status}: ${body}`);
+        return res.json({ success: true, notified: false, webhookStatus: response.status });
+      }
+
+      return res.json({ success: true, notified: true });
+    } catch (e) {
+      console.error("Failed to send webhook", e);
+      return res.json({ success: true, notified: false });
+    }
   });
 
   // Vite middleware for development

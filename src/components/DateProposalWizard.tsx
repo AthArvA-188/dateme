@@ -32,8 +32,141 @@ const DRESS_CODES = [
   { id: 'surprise', title: 'Surprise Me', icon: <Shirt className="w-6 h-6" />, description: 'I\'ll match whatever energy you bring.' },
 ];
 
-const bouncySpring = { type: 'spring', stiffness: 400, damping: 25 };
-const slowSpring = { type: 'spring', stiffness: 200, damping: 20 };
+// Per-activity theming for the success screen — colors, icons, ambient glyphs, copy.
+interface ActivityTheme {
+  pageBg: string;            // outer page wash (gradient)
+  cardBg: string;            // success card surface
+  cardBorder: string;        // card border tint
+  accent: string;            // primary accent (bg) for icon badge / CTA
+  accentHover: string;       // primary hover
+  accentText: string;        // text color matching accent
+  accentSoft: string;        // soft accent surface (chip/secondary CTA bg)
+  accentSoftBorder: string;  // border for the soft surface
+  ring: string;              // ring/shadow tint
+  glowA: string;             // top-right blob color
+  glowB: string;             // bottom-left blob color
+  headline: string;          // hero copy
+  subhead: string;           // secondary copy
+  ambientIcon: React.ComponentType<{ className?: string }>; // floating background motif
+  badgeIcon: React.ComponentType<{ className?: string }>;   // big icon in hero badge
+  planIcon: React.ComponentType<{ className?: string }>;    // icon next to "The Plan"
+}
+
+const ACTIVITY_THEMES: Record<string, ActivityTheme> = {
+  coffee: {
+    pageBg: 'from-amber-50 via-orange-50 to-rose-50',
+    cardBg: 'bg-amber-50/85',
+    cardBorder: 'border-amber-100',
+    accent: 'bg-amber-600',
+    accentHover: 'hover:bg-amber-700',
+    accentText: 'text-amber-700',
+    accentSoft: 'bg-amber-100/80',
+    accentSoftBorder: 'border-amber-200',
+    ring: 'shadow-amber-300/50',
+    glowA: 'bg-amber-200',
+    glowB: 'bg-orange-200',
+    headline: 'Brewed to perfection.',
+    subhead: "Two cups, one walk, zero awkward silences. I'll bring the small talk.",
+    ambientIcon: Coffee,
+    badgeIcon: Coffee,
+    planIcon: Coffee,
+  },
+  tacos: {
+    pageBg: 'from-orange-50 via-red-50 to-yellow-50',
+    cardBg: 'bg-orange-50/85',
+    cardBorder: 'border-orange-100',
+    accent: 'bg-red-500',
+    accentHover: 'hover:bg-red-600',
+    accentText: 'text-red-600',
+    accentSoft: 'bg-orange-100/80',
+    accentSoftBorder: 'border-orange-200',
+    ring: 'shadow-red-300/50',
+    glowA: 'bg-orange-200',
+    glowB: 'bg-yellow-200',
+    headline: "Tacos. Margs. You. Me.",
+    subhead: "It's basically a four-course love story. Salt rims included.",
+    ambientIcon: UtensilsCrossed,
+    badgeIcon: UtensilsCrossed,
+    planIcon: UtensilsCrossed,
+  },
+  arcade: {
+    pageBg: 'from-violet-50 via-fuchsia-50 to-indigo-50',
+    cardBg: 'bg-violet-50/85',
+    cardBorder: 'border-violet-100',
+    accent: 'bg-violet-600',
+    accentHover: 'hover:bg-violet-700',
+    accentText: 'text-violet-700',
+    accentSoft: 'bg-violet-100/80',
+    accentSoftBorder: 'border-violet-200',
+    ring: 'shadow-violet-400/50',
+    glowA: 'bg-fuchsia-200',
+    glowB: 'bg-indigo-200',
+    headline: 'Game on. Loser buys drinks.',
+    subhead: "Fair warning: I take Mario Kart very, very seriously.",
+    ambientIcon: Gamepad2,
+    badgeIcon: Gamepad2,
+    planIcon: Gamepad2,
+  },
+  movie: {
+    pageBg: 'from-slate-100 via-indigo-50 to-slate-50',
+    cardBg: 'bg-slate-50/85',
+    cardBorder: 'border-slate-200',
+    accent: 'bg-indigo-700',
+    accentHover: 'hover:bg-indigo-800',
+    accentText: 'text-indigo-700',
+    accentSoft: 'bg-indigo-50',
+    accentSoftBorder: 'border-indigo-200',
+    ring: 'shadow-indigo-400/50',
+    glowA: 'bg-indigo-200',
+    glowB: 'bg-slate-200',
+    headline: 'Roll the credits — it\'s a date.',
+    subhead: "I'll bring the popcorn. You bring the strong opinions about the ending.",
+    ambientIcon: Film,
+    badgeIcon: Film,
+    planIcon: Film,
+  },
+  museum: {
+    pageBg: 'from-stone-50 via-emerald-50 to-amber-50',
+    cardBg: 'bg-stone-50/85',
+    cardBorder: 'border-stone-200',
+    accent: 'bg-emerald-700',
+    accentHover: 'hover:bg-emerald-800',
+    accentText: 'text-emerald-700',
+    accentSoft: 'bg-emerald-50',
+    accentSoftBorder: 'border-emerald-200',
+    ring: 'shadow-emerald-400/40',
+    glowA: 'bg-emerald-200',
+    glowB: 'bg-amber-100',
+    headline: 'A masterpiece in the making.',
+    subhead: "We'll nod thoughtfully at paintings and pretend we know what they mean.",
+    ambientIcon: Brush,
+    badgeIcon: Brush,
+    planIcon: Brush,
+  },
+  custom: {
+    pageBg: 'from-rose-50 via-pink-50 to-orange-50',
+    cardBg: 'bg-white/85',
+    cardBorder: 'border-rose-100',
+    accent: 'bg-rose-500',
+    accentHover: 'hover:bg-rose-600',
+    accentText: 'text-rose-600',
+    accentSoft: 'bg-rose-50',
+    accentSoftBorder: 'border-rose-200',
+    ring: 'shadow-rose-300/50',
+    glowA: 'bg-pink-200',
+    glowB: 'bg-rose-200',
+    headline: "Your idea. I'm sold.",
+    subhead: "Honestly, the fact that you planned this already makes it the best date ever.",
+    ambientIcon: Sparkles,
+    badgeIcon: PencilLine,
+    planIcon: PencilLine,
+  },
+};
+
+const DEFAULT_THEME: ActivityTheme = ACTIVITY_THEMES.custom;
+
+const bouncySpring = { type: 'spring', stiffness: 400, damping: 25 } as const;
+const slowSpring = { type: 'spring', stiffness: 200, damping: 20 } as const;
 
 const noMessages = [
   "No thanks",
@@ -86,20 +219,39 @@ export default function DateProposalWizard() {
   const [loadingMsgIdx, setLoadingMsgIdx] = useState(0);
 
   const getLoadingMessages = () => {
-    const base = [
-      "Consulting my dog for outfit advice...",
-      "Practicing my best jokes...",
+    const tail = [
+      "Practicing my best jokes (the bar is low)...",
+      "Reminding myself: be charming, not weird...",
       "Almost ready..."
     ];
-    let first = "Checking local spots...";
-    if (selectedActivity === 'tacos') first = "Checking local taco spots...";
-    if (selectedActivity === 'coffee') first = "Locating the best coffee beans...";
-    if (selectedActivity === 'arcade') first = "Stockpiling digital tokens...";
-    if (selectedActivity === 'movie') first = "Checking showtimes...";
-    if (selectedActivity === 'museum') first = "Reading up on modern art...";
-    if (selectedActivity === 'surprise') first = "Formulating a master plan...";
-    if (selectedActivity === 'custom') first = "Reviewing your brilliant idea...";
-    return [first, ...base];
+    const byActivity: Record<string, string[]> = {
+      coffee: [
+        "Bribing the barista for the good table...",
+        "Memorizing your order so I look thoughtful...",
+      ],
+      tacos: [
+        "Calling dibs on the corner booth...",
+        "Practicing 'no cilantro, please' in three accents...",
+      ],
+      arcade: [
+        "Stockpiling tokens like it's the apocalypse...",
+        "Pretending I'll let you win at air hockey...",
+      ],
+      movie: [
+        "Scanning showtimes for something we'll both pretend to like...",
+        "Pre-negotiating the popcorn split...",
+      ],
+      museum: [
+        "Googling 'how to sound smart about modern art'...",
+        "Picking the painting I'll fake-cry in front of...",
+      ],
+      custom: [
+        "Reviewing your brilliant idea (genuinely impressed)...",
+        "Adjusting my plans accordingly...",
+      ],
+    };
+    const intro = byActivity[selectedActivity] ?? ["Locking in the perfect spot..."];
+    return [...intro, ...tail];
   };
 
   const loadingMessages = getLoadingMessages();
@@ -656,115 +808,163 @@ export default function DateProposalWizard() {
     return `mailto:your.email@example.com?subject=${subject}&body=${body}`;
   };
 
-  const renderSuccess = () => (
-    <motion.div
-      key="success"
-      initial={{ opacity: 0, scale: 0.8, y: 20 }}
-      animate={{ opacity: 1, scale: 1, y: 0 }}
-      transition={bouncySpring}
-      className="w-full max-w-lg mx-auto p-6 md:p-10 bg-white/80 backdrop-blur-xl border border-white rounded-[2.5rem] shadow-2xl shadow-rose-200/50 text-center space-y-8 relative overflow-hidden"
-    >
-      <div className="absolute -top-20 -right-20 w-40 h-40 bg-pink-100 rounded-full blur-2xl" />
-      <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-rose-100 rounded-full blur-2xl" />
+  const renderSuccess = () => {
+    const theme = ACTIVITY_THEMES[selectedActivity] ?? DEFAULT_THEME;
+    const BadgeIcon = theme.badgeIcon;
+    const PlanIcon = theme.planIcon;
+    const AmbientIcon = theme.ambientIcon;
 
-      <motion.div 
-        initial={{ rotate: -180, scale: 0 }}
-        animate={{ rotate: 0, scale: 1 }}
-        transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-        className="w-24 h-24 bg-gradient-to-tr from-rose-400 to-pink-500 text-white rounded-[2rem] rotate-3 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-rose-300/50 relative z-10"
+    // Floating ambient motifs (e.g., film reels for movie night, coffee cups for coffee).
+    const ambientPositions = [
+      { top: '8%', left: '6%', size: 'w-10 h-10', delay: 0, rotate: -15 },
+      { top: '14%', right: '8%', size: 'w-8 h-8', delay: 0.4, rotate: 20 },
+      { bottom: '18%', left: '10%', size: 'w-9 h-9', delay: 0.8, rotate: 12 },
+      { bottom: '10%', right: '6%', size: 'w-11 h-11', delay: 1.2, rotate: -10 },
+      { top: '46%', left: '4%', size: 'w-7 h-7', delay: 1.6, rotate: 25 },
+      { top: '42%', right: '4%', size: 'w-7 h-7', delay: 2.0, rotate: -25 },
+    ];
+
+    return (
+      <motion.div
+        key="success"
+        initial={{ opacity: 0, scale: 0.8, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={bouncySpring}
+        className={`w-full max-w-lg mx-auto p-6 md:p-10 ${theme.cardBg} backdrop-blur-xl border ${theme.cardBorder} rounded-[2.5rem] shadow-2xl ${theme.ring} text-center space-y-8 relative overflow-hidden`}
       >
-        <PartyPopper className="w-12 h-12" />
-      </motion.div>
-      
-      <div className="space-y-3 relative z-10">
-        <h2 className="text-4xl font-extrabold text-slate-800">It's a Date! 🎉</h2>
-        <p className="text-slate-500 font-medium text-lg">
-          I've locked it in. I'll reach out to confirm the details. I'm looking forward to it!
-        </p>
-      </div>
+        {/* Themed ambient glows */}
+        <div className={`absolute -top-24 -right-24 w-56 h-56 ${theme.glowA} rounded-full blur-3xl opacity-70 pointer-events-none`} />
+        <div className={`absolute -bottom-24 -left-24 w-56 h-56 ${theme.glowB} rounded-full blur-3xl opacity-70 pointer-events-none`} />
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, ...bouncySpring }}
-        className="bg-slate-50/80 p-6 rounded-3xl text-left space-y-5 border border-slate-100 relative z-10"
-      >
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-3 rounded-xl shadow-sm text-rose-500"><Coffee className="w-6 h-6" /></div>
-          <div>
-            <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">The Plan</div>
-            <div className="text-slate-800 font-bold text-lg">{getActivityTitle()}</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-3 rounded-xl shadow-sm text-rose-500"><CalendarIcon className="w-6 h-6" /></div>
-          <div>
-            <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">When</div>
-            <div className="text-slate-800 font-bold">
-              {selectedDate && new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} @ {selectedTime}
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="bg-white p-3 rounded-xl shadow-sm text-rose-500"><Shirt className="w-6 h-6" /></div>
-          <div>
-            <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">Dress Code</div>
-            <div className="text-slate-800 font-bold">
-              {DRESS_CODES.find(d => d.id === selectedDressCode)?.title}
-            </div>
-          </div>
-        </div>
-        {dietary && (
-          <div className="flex items-start gap-4">
-            <div className="bg-white p-3 rounded-xl shadow-sm text-rose-500 mt-1"><MessageCircleHeart className="w-6 h-6" /></div>
-            <div>
-              <div className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-0.5">Your Notes</div>
-              <div className="text-slate-700 font-medium italic line-clamp-3">"{dietary}"</div>
-            </div>
-          </div>
-        )}
-      </motion.div>
+        {/* Floating activity motifs */}
+        {ambientPositions.map((pos, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{
+              opacity: 0.18,
+              scale: 1,
+              y: [0, -10, 0],
+              rotate: [pos.rotate, pos.rotate + 8, pos.rotate],
+            }}
+            transition={{
+              opacity: { delay: pos.delay, duration: 0.6 },
+              scale: { delay: pos.delay, duration: 0.6 },
+              y: { repeat: Infinity, duration: 4 + i * 0.3, ease: 'easeInOut', delay: pos.delay },
+              rotate: { repeat: Infinity, duration: 5 + i * 0.4, ease: 'easeInOut', delay: pos.delay },
+            }}
+            className={`absolute ${theme.accentText} pointer-events-none`}
+            style={{
+              top: pos.top,
+              bottom: pos.bottom,
+              left: pos.left,
+              right: pos.right,
+            }}
+          >
+            <AmbientIcon className={pos.size} />
+          </motion.div>
+        ))}
 
-      {!hasSubmitted ? (
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        {/* Hero badge */}
+        <motion.div
+          initial={{ rotate: -180, scale: 0 }}
+          animate={{ rotate: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+          className={`w-24 h-24 ${theme.accent} text-white rounded-[2rem] rotate-3 flex items-center justify-center mx-auto mb-6 shadow-xl ${theme.ring} relative z-10`}
+        >
+          <BadgeIcon className="w-12 h-12" />
+        </motion.div>
+
+        <div className="space-y-3 relative z-10">
+          <h2 className="text-4xl font-extrabold text-slate-800">{theme.headline}</h2>
+          <p className="text-slate-600 font-medium text-lg">
+            {theme.subhead}
+          </p>
+        </div>
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6, ...bouncySpring }}
-          onClick={() => setHasSubmitted(true)}
-          className="w-full py-4 bg-slate-800 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:bg-slate-900 transition-colors shadow-xl shadow-slate-200 relative z-10"
+          transition={{ delay: 0.4, ...bouncySpring }}
+          className={`${theme.accentSoft} p-6 rounded-3xl text-left space-y-5 border ${theme.accentSoftBorder} relative z-10`}
         >
-          Can't Wait!
-          <Heart className="w-5 h-5 fill-rose-500 text-rose-500" />
-        </motion.button>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-3 relative z-10"
-        >
-          <a
-            href={generateCalendarLink()}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-4 bg-rose-50 text-rose-600 font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-100 transition-colors border-2 border-rose-200"
-          >
-            <CalendarIcon className="w-5 h-5" /> Add to Google Calendar
-          </a>
-          <a
-            href={generateMailtoLink()}
-            className="w-full py-4 bg-rose-500 text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:bg-rose-600 transition-colors shadow-xl shadow-rose-200"
-          >
-            <Send className="w-5 h-5" /> Send Me The Details
-          </a>
-          <p className="text-xs font-medium text-slate-400 mt-2 px-4">
-            (The email button opens a pre-written message in your mail app!)
-          </p>
+          <div className="flex items-center gap-4">
+            <div className={`bg-white p-3 rounded-xl shadow-sm ${theme.accentText}`}><PlanIcon className="w-6 h-6" /></div>
+            <div>
+              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">The Plan</div>
+              <div className="text-slate-900 font-bold text-lg">{getActivityTitle()}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className={`bg-white p-3 rounded-xl shadow-sm ${theme.accentText}`}><CalendarIcon className="w-6 h-6" /></div>
+            <div>
+              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">When</div>
+              <div className="text-slate-900 font-bold">
+                {selectedDate && new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })} @ {selectedTime}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className={`bg-white p-3 rounded-xl shadow-sm ${theme.accentText}`}><Shirt className="w-6 h-6" /></div>
+            <div>
+              <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">Dress Code</div>
+              <div className="text-slate-900 font-bold">
+                {DRESS_CODES.find(d => d.id === selectedDressCode)?.title}
+              </div>
+            </div>
+          </div>
+          {dietary && (
+            <div className="flex items-start gap-4">
+              <div className={`bg-white p-3 rounded-xl shadow-sm ${theme.accentText} mt-1`}><MessageCircleHeart className="w-6 h-6" /></div>
+              <div>
+                <div className="text-xs text-slate-500 uppercase font-bold tracking-wider mb-0.5">Your Notes</div>
+                <div className="text-slate-800 font-medium italic line-clamp-3">"{dietary}"</div>
+              </div>
+            </div>
+          )}
         </motion.div>
-      )}
-    </motion.div>
-  );
+
+        {!hasSubmitted ? (
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, ...bouncySpring }}
+            onClick={() => setHasSubmitted(true)}
+            className={`w-full py-4 ${theme.accent} ${theme.accentHover} text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-xl ${theme.ring} relative z-10`}
+          >
+            Can't Wait!
+            <Heart className="w-5 h-5 fill-white text-white" />
+          </motion.button>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-3 relative z-10"
+          >
+            <a
+              href={generateCalendarLink()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`w-full py-4 ${theme.accentSoft} ${theme.accentText} font-bold text-lg rounded-2xl flex items-center justify-center gap-2 hover:brightness-95 transition border-2 ${theme.accentSoftBorder}`}
+            >
+              <CalendarIcon className="w-5 h-5" /> Add to Google Calendar
+            </a>
+            <a
+              href={generateMailtoLink()}
+              className={`w-full py-4 ${theme.accent} ${theme.accentHover} text-white font-bold text-lg rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-xl ${theme.ring}`}
+            >
+              <Send className="w-5 h-5" /> Send Me The Details
+            </a>
+            <p className="text-xs font-medium text-slate-500 mt-2 px-4">
+              (The email button opens a pre-written message in your mail app!)
+            </p>
+          </motion.div>
+        )}
+      </motion.div>
+    );
+  };
 
   return (
     <div className="w-full min-h-[80vh] flex flex-col items-center justify-center overflow-hidden">
