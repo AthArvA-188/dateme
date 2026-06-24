@@ -1,0 +1,6 @@
+{
+  "name": "Date Proposal Wizard",
+  "description": "A gamified personal dating portfolio and proposal wizard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
