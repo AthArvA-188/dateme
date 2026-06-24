@@ -112,11 +112,14 @@ export default function DateProposalWizard() {
   const [noClicks, setNoClicks] = useState(0);
 
   // Generate next 14 days
-  const availableDates = Array.from({ length: 14 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() + i + 1);
-    return d;
-  });
+  const availableDates = React.useMemo(() => {
+    return Array.from({ length: 14 }).map((_, i) => {
+      const d = new Date();
+      d.setHours(0, 0, 0, 0); // Normalize time
+      d.setDate(d.getDate() + i + 1);
+      return d;
+    });
+  }, []);
 
   useEffect(() => {
     if (step === 'LOADING') {
